@@ -1,0 +1,172 @@
+@startuml DomainModel
+package tictactoe {
+    package models{
+        Class Game{
+            - Board
+            - Turn
+            + setUsers(int)
+            + isBoardComplete()
+            + isUser(): Boolean
+            + put(Coordinate): Error
+            + move(Coordinate, Coordinate): Error
+            + next()
+            + isTicTacToe(): Boolean
+            + getToken()
+            + getMaxPlayers()
+            + reset()
+        }
+        Game *-- Board
+        Game *-- Turn
+        Game ..> Error
+        Game ..> Coordinate
+        Game ..> Token
+        Class Board{
+            - Token[][]
+            + reset()
+            + getToken(Coordinate): Token
+            + write()
+            + isCompleted(): Boolean
+            + put(Coordinate, Token)
+            + move(Coordinate, Coordinate)
+            + remove(Coordinate)
+            + isOccupied(Coordinate, Token)
+            + isEmpty(Coordinate)
+            + isTicTacToe(Token)
+        }
+        Board *-- Token
+        Board ..> Coordinate
+        Board ...> Utils.Direction
+        Class Coordinate
+        Coordinate <|-- Utils.ConcreteCoordinate
+        Coordinate ...> Utils.Direction
+        Coordinate ...> Utils.ClosedInterval
+        Coordinate ..> Error
+        enum Error
+        Error ...> Utils.Console
+        Class Player{
+            + Token
+            + Board
+            + put(Coordinate): Error
+            - move(Coordinate): Error
+            + getToken(): Token
+        }
+        Player *-- Token
+        Player *-- Board
+        Player ..> Coordinate
+        Player ..> Error
+        enum Token
+        note right: Have NULL object
+        Token ...> Utils.ClosedInterval
+        Class Turn {
+            - Player[]
+            - Board
+            + setUsers(int)
+            + next()
+            + isUser(): Boolean
+            + put(Coordinate): Error
+            + getPlayer(): Player
+            + move(Coordinate, Coordinate): Error
+            + getToken(): Token
+        }
+        Turn *-- Board
+        Turn *-- Player
+        Turn ..> Token
+        Turn ..> Coordinate
+    }
+
+    package views{
+        enum Message
+        Message ..> Utils.Console
+        Class View{
+            - Game
+            - StartView
+            - PlayView
+            - ResumeView
+            + interact()
+        }
+        View *-- Game
+        View *-- StartView
+        View *-- PlayView
+        View *-- ResumeView
+        Class SubView{
+            - Game
+        }
+        SubView *--- Game
+        SubView <|--- StartView
+        SubView <|--- PlayView
+        SubView <|--- ResumeView
+        Class StartView{
+            + interact()
+        }
+        StartView ..> Utils.LimitedIntDialog
+        StartView ..> Message
+        StartView ..> GameView
+        Class PlayView{
+            + put()
+            + move()
+        }
+        PlayView ..> Error
+        PlayView ..> Coordinate
+        PlayView ..> Message
+        PlayView ..> TokenView
+        PlayView ..> ErrorView
+        PlayView ..> GameView
+        PlayView ..> CoordinateView
+        Class ResumeView{
+            + interact()
+        }
+        ResumeView ..> Utils.YesNoDialog
+        ResumeView ..> Message
+        Class CoordinateView{
+            - read(string): Coordinate
+        }
+        CoordinateView ..> Coordinate
+        CoordinateView ..> Error
+        CoordinateView ..> Utils.Console
+        CoordinateView ..> ErrorView
+        Class TokenView{
+            - Token
+            + write()
+        }
+        TokenView *-- Token
+        TokenView ..> Utils.Console
+        Class ErrorView{
+            - Error
+            + writeln()
+        }
+        ErrorView *-- Error
+        ErrorView ..> Utils.Console
+        Class GameView{
+            - Game
+            + write()
+        }
+        GameView *-- Game
+        GameView ..> Coordinate
+        GameView ..> Message
+        GameView ..> TokenView
+    }
+
+    Class TicTacToe{
+        - Game
+        - View 
+        + play()
+        + main()
+    }
+    TicTacToe *-- Game
+    TicTacToe *-- View
+}
+
+package Utils {
+    Class ClosedInterval
+    abstract Class ConcreteCoordinate
+    ConcreteCoordinate ..> Direction
+    Class Console 
+    interface Coordinate 
+    enum Direction
+    Class LimitedIntDialog
+    Class NullCoordinate
+    Coordinate <|-- NullCoordinate
+    Coordinate <|-- ConcreteCoordinate
+    Class YesNoDialog
+}
+@enduml

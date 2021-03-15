@@ -1,0 +1,275 @@
+@startuml DomainModel
+' Split into 4 pages
+page 2x2
+skinparam pageMargin 10
+skinparam pageExternalColor gray
+skinparam pageBorderColor black
+
+namespace tictactoe {
+    abstract Class TicTacToe{
+        - Game
+        - View
+        - StartController
+        - PlayController
+        - ResumeController
+        # abstract creativeView(Game): View
+        + play()
+    }
+    TicTacToe *-- models.Game
+    TicTacToe *-- controllers.PlayController
+    TicTacToe *-- controllers.ResumeController
+    TicTacToe *-- controllers.StartController
+
+    Class ConsoleTicTacToe{
+        # creativeView(Game): View
+        + main()
+    }
+    TicTacToe <|--- ConsoleTicTacToe
+    ConsoleTicTacToe *-- views.console.View
+
+    Class GraphicsTicTacToe{
+        # creativeView(Game): View
+        + main()
+    }
+    TicTacToe <|--- GraphicsTicTacToe
+    GraphicsTicTacToe *-- views.graphics.View
+    
+    namespace models{
+        Class Game{
+            - Board
+            - Turn
+            + reset()
+            + setUsers(int)
+            + isBoardComplete()
+            + isUser(): Boolean
+            + put(Coordinate): Error
+            + move(Coordinate, Coordinate): Error
+            + next()
+            + isTicTacToe(): Boolean
+            + getToken(): Token
+            + getMaxPlayers()
+        }
+        Game *-- Board
+        Game *-- Turn
+        Game ..> Error
+        Game ..> Coordinate
+        Game ..> Token
+
+        Class Board{
+            - Token[][]
+            + reset()
+            + getToken(Coordinate): Token
+            + write()
+            + isCompleted(): Boolean
+            + put(Coordinate, Token)
+            + move(Coordinate, Coordinate)
+            + remove(Coordinate)
+            + isOccupied(Coordinate, Token)
+            + isEmpty(Coordinate)
+            + isTicTacToe(Token)
+        }
+        Board *-- Token
+        Board ..> Coordinate
+        Board ...> Utils.Direction
+
+        Class Coordinate
+        Coordinate <|-- Utils.ConcreteCoordinate
+        Coordinate ...> Utils.Direction
+        Coordinate ...> Utils.ClosedInterval
+        Coordinate ..> Error
+
+        enum Error
+        Error ...> Utils.Console
+
+        Class Player{
+            + Token
+            + Board
+            + put(Coordinate): Error
+            - move(Coordinate): Error
+            + getToken(): Token
+        }
+        Player *-- Token
+        Player *-- Board
+        Player ..> Coordinate
+        Player ..> Error
+
+        enum Token
+        note right: Have NULL object
+        Token ...> Utils.ClosedInterval
+
+        Class Turn {
+            - Player[]
+            - Board
+            + setUsers(int)
+            + next()
+            + isUser(): Boolean
+            + put(Coordinate): Error
+            + getPlayer(): Player
+            + move(Coordinate, Coordinate): Error
+            + getToken(): Token
+        }
+        Turn *-- Board
+        Turn *-- Player
+        Turn ..> Token
+        Turn ..> Coordinate
+    }
+
+    namespace views{
+        abstract Class View{
+            + interact()
+            # start()
+            # play()
+            # isResumed()
+        }
+        View <|-- views.console.View
+        View <|-- views.graphics.View
+
+        enum Message
+        Message ..> Utils.Console
+        Message <.. views.console.StartView
+        Message <.. views.console.GameView
+        Message <.. views.console.ResumeView
+        Message <.. views.console.PlayView
+
+        Class ErrorView{
+            # Error
+        }
+        ErrorView *-- models.Error
+        ErrorView <|-- views.console.ErrorView
+
+        namespace views.console{
+            Class View{
+                - StartView
+                - PlayView
+                - ResumeView
+                + interact()
+            }
+            View *-- StartView
+            View *-- PlayView
+            View *-- ResumeView
+            View ..> controllers.StartController
+            View ..> controllers.PlayController
+            View ..> controllers.ResumeController
+   
+            Class StartView{
+                - StartController
+                + interact()
+            }
+            StartView *-- controllers.StartController
+            StartView ..> Utils.LimitedIntDialog
+            StartView ..> GameView
+
+            Class PlayView{
+                - PlayController
+                + interact()
+                + put()
+                + move()
+            }
+            PlayView *-- controllers.PlayController
+            PlayView ..> models.Error
+            PlayView ..> models.Coordinate
+            PlayView ..> TokenView
+            PlayView ..> ErrorView
+            PlayView ..> GameView
+            PlayView ..> CoordinateView
+
+            Class ResumeView{
+                - ResumeController
+                + interact()
+            }
+            ResumeView *-- controllers.ResumeController
+            ResumeView ..> UtilsYesNoDialog
+            
+            Class CoordinateView{
+                - read(string): Coordinate
+            }
+            CoordinateView ..> models.Coordinate
+            CoordinateView ..> models.Error
+            CoordinateView ..> Utils.Console
+            CoordinateView ..> ErrorView
+
+            Class TokenView{
+                    - Token
+                    + write()
+            }
+            TokenView *-- models.Token
+            TokenView ..> Utils.Console
+
+            Class ErrorView{
+                    + writeln()
+            }
+            ErrorView ..> Utils.Console
+
+            Class GameView{
+                    - Controller
+                    + write()
+            }
+            GameView *-- controllers.Controller
+            GameView ..> models.Coordinate
+            GameView ..> TokenView       
+        }
+
+        namespace views.graphics{
+            Class View
+            Class StartView
+            Class ResumeView
+            Class PlayView
+            Class GameView
+            Class CoordinateView
+            Class CoordinatePutView
+            Class CoordinateMoveView
+            Class Constrains
+            Class ChoosePlayerView
+        }
+
+    }
+
+    namespace controllers{
+        abstract Class Controller{
+            # Game
+            + getToken(Coordinate): Token
+        }
+        Controller *-- models.Game
+        Controller ..> models.Token
+        Class StartController{
+            + setUsers(int)
+            + getMaxPlayers()
+        }
+        Controller <|-- StartController
+        Class PlayController{
+            + next()
+            + isBoardComplete()
+            + isTicTacToe()
+            + getToken(): Token
+            + isUser()
+            + put(Coordinate): Error
+            + move(Coordinate,Coordinate): Error
+        }
+        Controller <|-- PlayController
+        PlayController ..> models.Coordinate
+        PlayController ..> models.Error
+        Class ResumeController{
+            + resume()
+        }
+        Controller <|-- ResumeController
+    }
+}
+
+namespace Utils {
+    Class ClosedInterval
+    Class ConcreteCoordinate
+    ConcreteCoordinate ..> Console
+    Class Console 
+    interface Coordinate 
+    Coordinate ..> Direction
+    enum Direction
+    Class LimitedIntDialog
+    LimitedIntDialog *-- ClosedInterval
+    LimitedIntDialog ..> Console
+    Class NullCoordinate
+    Coordinate <|-- NullCoordinate
+    Coordinate <|-- ConcreteCoordinate
+    Class YesNoDialog
+    YesNoDialog ..> Console
+}
+@enduml

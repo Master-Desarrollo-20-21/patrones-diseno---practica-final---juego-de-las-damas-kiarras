@@ -1,0 +1,423 @@
+@startuml DomainModel
+' Split into 4 pages
+page 2x2
+skinparam pageMargin 10
+skinparam pageExternalColor gray
+skinparam pageBorderColor black
+
+namespace tictactoe {
+
+    abstract Class TicTacToe{
+        - Logic
+        - View
+        # abstract Logic createLogic()
+        + play()
+    }
+    TicTacToe *-- controllers.Logic
+    TicTacToe ..> controllers.AcceptorController
+
+    class TicTacToeStandalone extends TicTacToe
+    TicTacToeStandalone ..> controllers.Logic
+    TicTacToeStandalone ..> tictactoe.controllers.implementation.LogicImplementation
+
+}
+namespace tictactoe.controllers{
+    namespace implementation{
+        class LogicImplementation extends Logic
+        class PlayControllerImplementation extends PlayController
+        class ResumeControllerImplementation extends ResumeController
+        class StartControllerImplementation extends StartController
+    }
+    abstract class AcceptorController extends Controller{
+        accept(ControllerVisitor)
+    }
+    class Controller{
+        - Session
+        + getValueState(): StateValue
+    }
+    Controller *-- tictactoe.models.Session
+    Controller ..> tictactoe.types.StateValue
+
+    interface ControllerVisitor{
+        visit(StartController)
+        visit(PlayController)
+        visit(ResumeController)
+    }
+    Class Logic{
+        - Session
+        + getController(): AcceptorController
+    }
+    Logic *--- tictactoe.models.Session
+    Logic ...> tictactoe.types.StateValue
+    Logic ..> controllers.AcceptorController
+
+    class MovementController extends Controller{
+        - SessionImplementation
+    }
+    MovementController *-- tictactoe.models.SessionImplementation
+    MovementController ..> tictactoe.models.Coordinate
+    MovementController ..> tictactoe.types.Error
+    MovementController ..> tictactoe.types.PlayerType
+
+
+    Class PlayController extends AcceptorController{
+        + next()
+        + isBoardComplete()
+        + isTicTacToe()
+        + getToken(): Token
+        + isUser()
+        + put(Coordinate): Error
+        + move(Coordinate,Coordinate): Error
+        + undo()
+        + undoable()
+        + redo()
+        + redoable()
+        + accept(ControllerVisitor)
+    }
+    PlayController ...> tictactoe.models.Coordinate
+    PlayController ...> tictactoe.types.Error
+    PlayController ..> ControllerVisitor
+
+    Class RedoController extends Controller{
+        - SessionImplementation
+        + redo()
+        + redoable(): Boolean
+    }
+    RedoController *-- tictactoe.models.SessionImplementation
+
+    Class ResumeController extends AcceptorController{
+        + resume()
+        + accept(ControllerVisitor)
+    }
+    ResumeController ..> ControllerVisitor
+
+    Class StartController extends AcceptorController{
+        + start()
+        + createPlayers(int)
+        + accept(ControllerVisitor)
+    }
+    StartController ..> ControllerVisitor
+
+    Class UndoController extends Controller{
+        - SessionImplementation
+        + undo()
+        + undoable(): Boolean
+    }
+    UndoController *-- tictactoe.models.SessionImplementation
+
+}
+
+namespace distributed{
+    class LogicImplementationServer
+    class LogicProxy
+    class PlayControllerProxy
+    class ResumeControllerProxy
+    class SessionProxy
+    class StartControllerProxy
+    class TicTacToeClient
+    class TicTacToeServer
+}
+
+namespace tictactoe.models{
+    Class Board{
+        - Token[][]
+        + copy(): Board
+        + getToken(Coordinate): Token
+        + isCompleted(): Boolean
+        + put(Coordinate, Token)
+        + move(Coordinate, Coordinate)
+        + remove(Coordinate)
+        + isOccupied(Coordinate, Token)
+        + isEmpty(Coordinate)
+        + isTicTacToe(Token)
+    }
+    Board *-- tictactoe.types.Token
+    Board ..> Coordinate
+    Board ...> Utils.Direction
+
+    Class Coordinate extends Utils.Coordinate
+    Coordinate ...> Utils.Direction
+    Coordinate ...> Utils.ClosedInterval
+    Coordinate ..> tictactoe.types.Error
+
+    Class Game{
+        - Board
+        - Turn
+        - Player[]
+        + reset()
+        + setUsers(int)
+        + isBoardComplete()
+        + isUser(): Boolean
+        + put(Coordinate): Error
+        + move(Coordinate, Coordinate): Error
+        + next()
+        + isTicTacToe(): Boolean
+        + getToken(): Token
+        + getMaxPlayers()
+        + createMemento(): GameMemento
+        + set(Memento)
+    }
+    Game *-- Board
+    Game *-- Turn
+    Game *-- Player
+    Game ..> tictactoe.types.Error
+    Game ..> tictactoe.types.PlayerType
+    Game ..> Coordinate
+    Game ..> tictactoe.types.Token
+    Game ..> Memento
+
+    Class Memento{
+        - Board
+        - Turn
+        - Player[]
+        + getBoard(): Board
+        + getTurn(): Turn
+    }
+    Memento *-- Board
+    Memento *-- Turn
+    Memento *-- Player
+
+    Class Player{
+        - Token
+        - Board
+        - PlayerType
+        + put(Coordinate): Error
+        - move(Coordinate): Error
+        + getToken(): Token
+    }
+    Player *-- tictactoe.types.Token
+    Player *-- tictactoe.types.PlayerType
+    Player *-- Board
+    Player ..> Coordinate
+    Player ..> tictactoe.types.Error
+
+    Class Registry{
+        - List<Memento>
+        - Game
+        + register()
+        + undo()
+        + redo()
+        + isUndoable(): Boolean
+        + isRedoable(): Boolean
+    }
+    Registry *-- Memento
+    Registry *-- Game
+
+
+    Class Session{
+        + getValueState()
+    }
+    Session ..> tictactoe.types.StateValue
+
+
+    class SessionImplementation  implements Session{
+        - Game
+        - Registry
+        - State
+        + getToken(Coordinate)
+        + next()
+        + setUsers(int)
+        + getPlayers()
+        + reset()
+        + isBoardComplete(): Boolean
+        + isTicTacToe(): Boolean
+        + isUser(): Boolean
+        + put(coordinate): Error
+        + move(coordinate, cooodinate): Error
+        + undo()
+        + isUndoable(): Boolean
+        + redo()
+        + isRedoable(): Boolean
+    }
+    Session *-- Game
+    Session *-- Registry
+    Session *-- State
+    Session ..> tictactoe.types.Error
+    Session ..> tictactoe.types.StateValue
+    Session ..> tictactoe.types.Token
+
+    Class State{
+        - StateValue
+        + reset()
+        + next()
+        + getStateVale(): StateValue
+    }
+    State *-- tictactoe.types.StateValue
+
+    Class Turn {
+        - Player[]
+        + setUsers(int)
+        + next()
+        + isUser(): Boolean
+        + getPlayer(): PlayerError
+        + getToken(): Token
+    }
+    Turn *-- Player
+    Turn ..> tictactoe.types.Error
+
+}
+
+namespace tictactoe.views{
+    abstract Class View{
+        + interact(AcceptorController)
+    }
+    View ..> controllers.AcceptorController
+
+    enum Message
+    Message ..> Utils.Console
+    Message <.. views.console.StartView
+    Message <.. views.console.GameView
+    Message <.. views.console.ResumeView
+    Message <.. views.console.PlayView
+
+    Class ErrorView{
+        # Error
+    }
+
+}
+
+namespace views.console{
+    
+    Class BoardView extends Utils.WithConsoleView
+    BoardView *-- tictactoe.controllers.PlayController
+BoardView ..> tictactoe.models.Coordinate
+
+    Class Command extends Utils.Command{
+        - PlayController
+    }
+    Command *-- controllers.PlayController
+
+    Class CoordinateView{
+        - read(string): Coordinate
+    }
+    CoordinateView ..> tictactoe.models.Coordinate
+    CoordinateView ..> tictactoe.types.Error
+    CoordinateView ..> Utils.WithConsoleView
+    CoordinateView ..> ErrorView
+
+    Class ErrorView extends tictactoe.views.ErrorView{
+        + writeln()
+    }
+    ErrorView ..> Utils.WithConsoleView
+    ErrorView *-- tictactoe.types.Error
+
+    Class GameView{
+    }
+    GameView *-- controllers.PlayController
+
+class MachinePlayerView extends PlayerView
+MachinePlayerView o-- controllers.PlayController
+MachinePlayerView ..> tictactoe.models.Coordinate
+MachinePlayerView ..> tictactoe.types.Error
+
+enum MessageView
+class MovementCommand extends Command
+MovementCommand o-- controllers.PlayController
+MovementCommand ..> MessageView
+MovementCommand ..> tictactoe.models.Coordinate
+MovementCommand ..> tictactoe.types.PlayerType
+
+    Class PlayMenu extends Menu
+    PlayMenu ..> controllers.PlayController
+
+    Class PlayView{
+        + interact(PlayController)
+    }
+    PlayView ..> controllers.PlayController
+
+    Class RedoCommand extends Command{
+        # execute()
+        # isActive(): Boolean
+    }
+    RedoCommand ..> controllers.PlayController
+    RedoCommand ..> tictactoe.views.Message
+
+    class ResultView extends WithConsoleView
+ResultView ..> tictactoe.types.Token
+
+    Class ResumeView{
+        + interact(ResumeController)
+    }
+    ResumeView ..> UtilsYesNoDialog
+    ResumeView ..> controllers.ResumeController
+
+    Class StartView extends WithConsoleView{
+        + interact()
+    }
+    StartView ..> Utils.LimitedIntDialog
+    StartView ..> tictactoe.models.Turn
+    StartView ..> controllers.StartController
+
+    Class UndoCommand extends Command{
+        # execute()
+        # isActive(): Boolean
+    }
+    UndoCommand ..> controllers.PlayController
+    UndoCommand ..> tictactoe.views.Message
+
+class UserPlayerView extends PlayerView
+UserPlayerView o-- controllers.PlayController
+UserPlayerView ..> tictactoe.models.Coordinate
+UserPlayerView ..> tictactoe.types.Error
+
+    Class View extends tictactoe.views.View implements controllers.ControllerVisitor{
+        - StartView
+        - PlayView
+        - ResumeView
+        + interact(AcceptorController)
+        + visit(StartController)
+        + visit(PlayController)
+        + visit(ResumeController)
+    }
+    View *-- StartView
+    View *-- PlayView
+    View *-- ResumeView
+    View ..> controllers.AcceptorController
+    View ..> controllers.ControllerVisitor
+    View ..> controllers.StartController
+    View ..> controllers.PlayController
+    View ..> controllers.ResumeController
+}
+
+namespace views.graphics{
+    Class View extends tictactoe.views.View
+    Class StartView
+    Class ResumeView
+    Class PlayView
+    Class GameView
+    Class CoordinateView
+    Class CoordinatePutView
+    Class CoordinateMoveView
+    Class Constrains
+    Class ChoosePlayerView
+}
+
+
+namespace tictactoe.types{
+    enum Error
+    enum StateValue
+    enum Token
+    note left: Have NULL object
+    Token ..> Utils.ClosedInterval
+    enum PlayerType
+}
+
+namespace Utils {
+    Class ClosedInterval
+    abstract Class Command{
+        - title
+        # execute()
+        # isActivate(): Boolean
+        + getTitle(): string
+    }
+    Class Console
+    interface Coordinate
+    Coordinate ..> Direction
+    enum Direction
+    class PlayersDialog extends WithConsoleView
+    class TCPIP
+    abstract class WithConsoleView
+    Class YesNoDialog
+    YesNoDialog ..> Console
+}
+@enduml

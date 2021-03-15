@@ -1,0 +1,90 @@
+@startuml DomainModel
+package tictactoe {
+    Class TicTacToe{
+        - Board 
+        - Turn 
+        + play()
+        + playGame()
+        - isResumeGame(): Boolean
+        + main()
+    }
+    TicTacToe *-- Board
+    TicTacToe *-- Turn
+    TicTacToe ..> Utils.YesNoDialog
+    TicTacToe ..> Message
+    Class Board{
+        - Token[][]
+        + reset()
+        + write()
+        + isCompleted(): Boolean
+        + put(Coordinate, Token)
+        + move(Coordinate, Coordinate)
+        + remove(Coordinate)
+        + isOccupied(Coordinate, Token)
+        + isEmpty(Coordinate)
+        + isTicTacToe(Token)
+    }
+    Board *-- Token
+    Board ..> Coordinate
+    Board ..> Utils.Direction
+    Board ..> Message
+    Class Turn{
+        - Player[]
+        + play()
+        + writeWinner()
+        + getToken(): Token
+    }
+    Turn ..> Utils.LimitedIntDialog
+    Turn <-- Board
+    Turn *-- Player
+    Turn ..> Token
+    Turn ..> Message
+    enum Token
+    note right: Have NULL object
+    Token ..> Utils.ClosedInterval
+    Token ..> Utils.Console
+    Class Player{
+        + Token
+        + Board
+        + play()
+        + put()
+        + getCoordinate(Message): Coordinate
+        + checkPutCoordinateError(Coordinate): Error
+        - move()
+        + checkMoveOriginCoordinateError(Coordinate): Error
+        + checkMoveTargetCoordinateError(Coordinate): Error
+        + writeWinner()
+    }
+    Player *-- Token
+    Player *-- Board
+    Player ..> Coordinate
+    Player ..> Error
+    Player ..> Message
+    Player <|-- UserPlayer
+    Player <|-- MachinePlayer
+    enum Error
+    Error ..> Utils.Console
+    enum Message
+    Message ..> Utils.Console
+    Class Coordinate
+    Coordinate <|-- Utils.Coordinate
+    Coordinate <|-- Utils.ConcreteCoordinate
+    Coordinate ..> Utils.Direction
+    Coordinate ..> Utils.ClosedInterval
+    Coordinate ..> Error 
+}
+
+package Utils {
+    Class ClosedInterval
+    abstract Class ConcreteCoordinate
+    ConcreteCoordinate ..> Direction
+    Class Console 
+    interface Coordinate 
+    enum Direction
+    Class LimitedIntDialog
+    Class NullCoordinate
+    Coordinate <|-- NullCoordinate
+    Coordinate <|-- ConcreteCoordinate
+    Class YesNoDialog
+}
+@enduml
